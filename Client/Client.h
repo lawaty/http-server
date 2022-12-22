@@ -31,7 +31,7 @@ private:
    * Socket file descriptor
    */
   int sock;
-  Connection* conn;
+  Connection *conn;
 
 public:
   /**
@@ -39,12 +39,12 @@ public:
    * @param char* ip
    * @param char* port
    */
-  Client(char* ip, char* port);
+  Client(char *ip, char *port);
 
-  string sendRequest();
+  void sendRequest(string msg);
 };
 
-Client::Client(char* ip, char* port)
+Client::Client(char *ip, char *port)
 {
   address = new AddrInfo(ip, port);
 
@@ -52,24 +52,16 @@ Client::Client(char* ip, char* port)
   if (sock == -1)
     Output::showError("socket");
 
-  if (connect(sock, address->format(), address->getLength()) == -1)
+  if (connect(sock, address->format(), address->getLength()) < 0)
     Output::showError("connect");
 
   Output::showSuccess("Connected successfully");
 
-
-  char buf[20];
   conn = new Connection(sock);
-  int numbytes;
-  if ((numbytes = recv(sock, buf, 19, 0)) == -1) {
-    perror("recv");
-    exit(1);
-  }
-
-  buf[numbytes] = '\0';
-  printf("client: received '%s'\n",buf);
 }
 
-string Client::sendRequest(){
-  
+void Client::sendRequest(string msg)
+{
+  conn->echo(msg);
+  cout << conn->recv();
 }

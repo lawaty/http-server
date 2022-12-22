@@ -9,7 +9,7 @@
 #include "Output.h"
 #endif
 
-#define MAX_SIZE 10
+#define MAX_SIZE 1000
 
 /**
  * Entity easier the communication processes
@@ -25,7 +25,7 @@ public:
   Connection(int id);
   void handle();
   void echo(string msg);
-  char* read();
+  char* recv();
 };
 
 Connection::Connection(){}
@@ -37,19 +37,18 @@ Connection::Connection(int id)
 
 void Connection::echo(string msg){
   char* p = &msg[0];
-  int len = send(sock, p, msg.length() - 1, 0);
-  cout << p << msg << len << msg.length() << endl;
+  int len = send(sock, p, strlen(p), 0);
   if(len > 0)
     cout << "Sent a msg with length " << len << " : " << msg << endl;
   else
     Output::showError("send");
+
 };
 
-char* Connection::read(){
-  int num_bytes = recv(sock, buf, MAX_SIZE - 1, 0);
+char* Connection::recv(){
+  long long num_bytes = read(sock, buf, MAX_SIZE - 1);
   if(num_bytes == -1)
     Output::showError("read");
 
-  cout << "Received a msg of size " << num_bytes << ":" << buf << endl;
   return buf;
 }

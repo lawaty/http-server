@@ -16,12 +16,12 @@ int
 main(int argc, char* argv[])
 {
 
-  if(argc < 3)
+  if(argc < 5)
     Output::showError("IP and Port Are Required");
 
   char* ip = argv[1];
   char* port = argv[2];
 
   Client client(ip, port);
-  client.sendRequest();
+  client.sendRequest(string(argv[3]) + " " + string(argv[4]));
 }

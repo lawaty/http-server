@@ -1,19 +1,39 @@
-#include <string.h>
+#define PLAIN "text/plain"
+#define HTML "text/html"
+#define IMAGE "image/png"
 
-char* parsePath(char line[], const char symbol[])
+vector<string> split(string str)
 {
-	char *message;
-	char * token = strtok(line, symbol);
-	int current = 0;
+	string buf;
+	str.erase(remove(str.begin(), str.end(), '\n'), str.cend());
+	stringstream ss(str);
 
-	while (token != NULL) {
+	vector<string> splitted;
+	while (getline(ss, buf, ' '))
+		splitted.push_back(buf);
 
-		token = strtok(NULL, " ");
-		if (current == 0) {
-			message = token;
-			return message;
-		}
-		current = current + 1;
-	}
-	return message;
+	return splitted;
+}
+
+bool pathExists(string path)
+{
+	ifstream s;
+	path = "./" + path;
+	s.open("./" + path);
+	if (s)
+		return true;
+
+	return false;
+}
+
+string contentType(string path)
+{
+
+	if (path.find(".html") != std::string::npos)
+		return HTML;
+
+	if (path.find(".png") != std::string::npos)
+		return IMAGE;
+
+	return PLAIN;
 }

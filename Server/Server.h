@@ -20,31 +20,58 @@
 #include "../Utils/Connection.h"
 #endif
 
+#define OK "HTTP/1.1 200 OK"
+#define NOT_FOUND "HTTP/1.1 404 Not Found\n"
+
 #define MAX_QUEUE 5
 
 using namespace std;
 
+string handleGet(string path) {
+  if(!pathExists(path))
+    return NOT_FOUND;
+
+  string line;
+	ifstream s;
+	s.open(path);
+
+  string file_content; 
+	while(getline(s, line))
+		file_content += line + "\n";
+  
+	string response = string(OK) + "\nContent-Type: " + contentType(path) + "\nContent-Length: " + to_string(file_content.length()) + "\n\n" + file_content;
+
+	return response;
+}
+
 /**
  * 
 */
-void handleConnection(int sock)
-{
-  char buffer[10000];
-  Connection conn(sock);
-  conn.echo("lol");
+string handlePost() {
+  
 }
 
+void handleConnection(int sock)
+{
+  Connection conn(sock);
+  vector<string> splitted = split(conn.recv());
+
+  if(splitted[0] == "GET")
+    conn.echo(handleGet(splitted[1]));
+  else
+    conn.echo(handlePost());
+}
 
 class Server
 {
 private:
   /**
    * DTO holds server info and provides easy interface to extract data from it
-  */
-  AddrInfo* address; // struct holding server info
+   */
+  AddrInfo *address; // struct holding server info
   /**
    * Socket file descriptor
-  */
+   */
   int sock;
   bool running;
 
@@ -53,15 +80,15 @@ public:
    * Method prepares the required data structures for operating the server
    * @param char[] ip
    * @param char[] port
-  */
+   */
   Server(char *ip, char *port);
   /**
    * Method initializes listeners and manager connection requests
-  */
+   */
   void start();
   /**
    * Method stops listeners
-  */
+   */
   void stop();
 };
 
@@ -75,6 +102,7 @@ Server::Server(char *ip, char *port) // initializing the server
 void Server::start()
 {
   // Starting listener
+
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock == -1)
     Output::showError("socket");
@@ -105,11 +133,12 @@ void Server::start()
 
     // Connection accepted
     Output::showSuccess("Connection Accepted");
+
     int id = fork();
 
     if (!id) // Child process
-      handleConnection(sock);
-    
+      handleConnection(conn_id);
+
     else
       close(id); // Parent doesn't need the connection descriptor at all
   }

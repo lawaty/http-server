@@ -6,40 +6,59 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include "../Utils/Output.h"
 #include "../Utils/AddrInfo.h"
+#include "../Utils/Connection.h"
 
 #define INET AF_INET
 #define MAX_QUEUE 5
 
 using namespace std;
 
+/**
+ * 
+*/
+void handleConnection(int id)
+{
+  Connection conn(id);
+  conn.handle();
+}
+
+
 class Server
 {
 private:
-  AddrInfo *si;           // struct holding server info
-  int sock;               // socket file descriptor
-  void showError(string); // error formatting method
+  /**
+   * DTO holds server info and provides easy interface to extract data from it
+  */
+  AddrInfo *si; // struct holding server info
+  /**
+   * Socket file descriptor
+  */
+  int sock;
   bool running;
-  vector<int> conns;
 
 public:
-  Server(char *ip, char *port); // initializing the server
-  void start();                 // bind to port and listen
-  void stop();                  // close listening socket
+  /**
+   * Method prepares the required data structures for operating the server
+   * @param char[] ip
+   * @param char[] port
+  */
+  Server(char *ip, char *port);
+  /**
+   * Method initializes listeners and manager connection requests
+  */
+  void start();
+  /**
+   * Method stops listeners
+  */
+  void stop();
 };
-
-void Server::showError(string err, bool fatal = true) {
-  if(fatal)
-    throw("Error: " + err);
-  
-  cout << "Warn: " + err;
-
-}
 
 Server::Server(char *ip, char *port) // initializing the server
 {
   struct addrinfo hints;
-  struct addrinfo* temp;
+  struct addrinfo *temp;
 
   memset(&hints, 0, sizeof hints);
 
@@ -49,45 +68,55 @@ Server::Server(char *ip, char *port) // initializing the server
     hints.ai_flags = AI_PASSIVE;
 
   if (getaddrinfo(ip, port, &hints, &temp))
-    showError("getaddr");
+    Output::showError("getaddr");
 
   si = new AddrInfo(temp);
 
-  cout << "Initialized server successfully" << endl;
+  Output::showSuccess("Initialized server successfully");
 }
 
-void Server::start() {
+void Server::start()
+{
+  // Starting listener
   sock = socket(si->getFamily(), si->getType(), si->getProtocol());
   if (sock == -1)
-    showError("socket");
+    Output::showError("socket");
 
   if (bind(sock, si->getAddr(), si->getLength()) == -1)
-    showError("bind");
+    Output::showError("bind");
 
   if (listen(sock, MAX_QUEUE) == -1)
-    showError("listen");
+    Output::showError("listen");
 
-  cout << "Currently Listening on port " << si->getPort() << endl;
-
+  // Accepting Connections
   struct sockaddr_storage their_addr; // connector address
-
   running = true;
-  while(running) {
-    int conn = accept(sock, (struct sockaddr *) &their_addr, sizeof their_addr);
-    if(conn == -1){
-      showError("Initializing communication with client failed", false);
+  cout << "Currently Listening on port " << si->getPort() << endl;
+  while (running)
+  {
+    int conn_id = accept(sock, (struct sockaddr *)&their_addr, sizeof their_addr);
+
+    // Connection rejected
+    if (conn_id == -1)
+    {
+      Output::showError("Initializing communication with client failed", false);
       continue;
     }
 
+    // Connection accepted
+    Output::showSuccess("Connection Accepted");
     int id = fork();
-    if(!id){
-      conns.push_back(conn);
-    }
-  }
 
+    if (!id) // Child process
+      handleConnection(id);
+    
+    else
+      close(id); // Parent doesn't need the connection descriptor at all
+  }
 }
 
-void Server::stop() {
+void Server::stop()
+{
   close(sock);
   cout << "Server closed";
   running = false;

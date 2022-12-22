@@ -3,9 +3,13 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include 
+#define CONNECTION
 
-#define MAX_SIZE 200
+#ifndef OUTPUT
+#include "Output.h"
+#endif
+
+#define MAX_SIZE 10
 
 /**
  * Entity easier the communication processes
@@ -14,32 +18,38 @@ class Connection
 {
 private:
   int sock;
-  char buf[MAX_SIZE]
+  char buf[MAX_SIZE];
 
 public:
+  Connection();
   Connection(int id);
   void handle();
-  void echo();
-  void read();
+  void echo(string msg);
+  char* read();
 };
+
+Connection::Connection(){}
 
 Connection::Connection(int id)
 {
   sock = id;
 }
 
-void Connection::handle()
-{
-  echo(sock, "a7la mesa", 13, 0);
-}
-
-void Connection::echo(char msg[]){
+void Connection::echo(string msg){
   char* p = &msg[0];
-  send(sock, p, sizeof(msg) / sizeof(msg[0]), 0);
-}:
+  int len = send(sock, p, msg.length() - 1, 0);
+  cout << p << msg << len << msg.length() << endl;
+  if(len > 0)
+    cout << "Sent a msg with length " << len << " : " << msg << endl;
+  else
+    Output::showError("send");
+};
 
 char* Connection::read(){
-  int num_bytes = recv(sock, buf, MAX_SIZE - 1);
+  int num_bytes = recv(sock, buf, MAX_SIZE - 1, 0);
   if(num_bytes == -1)
-    Output::showError("recv")
+    Output::showError("read");
+
+  cout << "Received a msg of size " << num_bytes << ":" << buf << endl;
+  return buf;
 }

@@ -2,6 +2,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+
+#define ADDR_INFO
 
 /**
  * DTO for clarity
@@ -9,41 +12,30 @@
 class AddrInfo
 {
 public:
-  struct addrinfo* ai;
-  struct sockaddr_in *sin;
+  struct sockaddr_in address;
 
-  AddrInfo(struct addrinfo* ai)
+  AddrInfo(char* ip, char* port)
   {
-    this->ai = ai;
-    this->sin = (struct sockaddr_in *) ai;
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = ip != NULL ? inet_addr(ip): INADDR_ANY;
+    address.sin_port = htons(atoi(port));
+    memset(address.sin_zero, '\0', sizeof address.sin_zero);
   }
 
-  struct sockaddr* getAddr() {
-    return this->ai->ai_addr;
+  struct sockaddr* format() {
+    return (struct sockaddr* ) &address;
   }
 
-  int getFamily()
-  {
-    return ai->ai_family;
+  int getLength() {
+    return sizeof(address);
   }
 
-  int getType()
-  {
-    return ai->ai_socktype;
-  }
-
-  int getProtocol()
-  {
-    return ai->ai_protocol;
-  }
-
-  int getLength()
-  {
-    return ai->ai_addrlen;
+  char* getIP() {
+    return inet_ntoa(address.sin_addr);
   }
 
   int getPort()
   {
-    return htons(sin->sin_port);
+    return htons(address.sin_port);
   }
 };

@@ -7,8 +7,21 @@
 #include <unistd.h>
 
 #include "../Utils/Output.h"
-#include "../Utils/AddrInfo.h"
 
-int main() {
-  
+#include "Client.h"
+
+using namespace std;
+
+int
+main(int argc, char* argv[])
+{
+
+  if(argc < 3)
+    Output::showError("IP and Port Are Required");
+
+  char* ip = argv[1];
+  char* port = argv[2];
+
+  Client client(ip, port);
+  client.sendRequest();
 }

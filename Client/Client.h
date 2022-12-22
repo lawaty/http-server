@@ -1,68 +1,75 @@
 #include <string>
 #include <vector>
 
+#include <cstring>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 
+#ifndef OUTPUT
 #include "../Utils/Output.h"
-#include "../Utils/AddrInfo.h"
-#include "../Utils/Connection.h"
+#endif
 
-#define INET AF_INET
+#ifndef ADDRINFO
+#include "../Utils/AddrInfo.h"
+#endif
+
+#ifndef CONNECTION
+#include "../Utils/Connection.h"
+#endif
 
 class Client
 {
 private:
   /**
    * DTO holds server info and provides easy interface to extract data from it
-  */
-  AddrInfo *si; // struct holding server info
+   */
+  AddrInfo *address; // struct holding server info
   /**
    * Socket file descriptor
-  */
+   */
   int sock;
-  Connection conn;
-  
-public:
+  Connection* conn;
 
+public:
   /**
    * Method prepares the required data structures for operating the server
-   * @param char[] ip
-   * @param char[] port
-  */
-  Client(char *ip, char *port);
-  /**
-   * Method initializes listeners and manager connection requests
-  */
- };
+   * @param char* ip
+   * @param char* port
+   */
+  Client(char* ip, char* port);
 
-Client::Client(ip, port) {
-  struct addrinfo hints;
-  struct addrinfo *temp;
+  string sendRequest();
+};
 
-   memset(&hints, 0, sizeof hints);
+Client::Client(char* ip, char* port)
+{
+  address = new AddrInfo(ip, port);
 
-  hints.ai_family = INET;
-  hints.ai_socktype = SOCK_STREAM;
-  if (ip == NULL)
-    hints.ai_flags = AI_PASSIVE;
-
-  if (getaddrinfo(ip, port, &hints, &temp))
-    Output::showError("getaddr");
-
-  si = new AddrInfo(temp);
-
-  sock = socket(si->getFamily(), si->getType(), si->getProtocol());
+  sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock == -1)
-    Output::showError("socket");    
+    Output::showError("socket");
 
-  if(connect(sock, si->getAddr(), si->getLength()) == -1)
+  if (connect(sock, address->format(), address->getLength()) == -1)
     Output::showError("connect");
 
   Output::showSuccess("Connected successfully");
 
-  conn(sock);
+
+  char buf[20];
+  conn = new Connection(sock);
+  int numbytes;
+  if ((numbytes = recv(sock, buf, 19, 0)) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  buf[numbytes] = '\0';
+  printf("client: received '%s'\n",buf);
 }
 
+string Client::sendRequest(){
+  
+}

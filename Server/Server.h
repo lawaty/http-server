@@ -1,16 +1,25 @@
 #include <string>
 #include <vector>
 
+#include <cstring>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 
+#ifndef OUTPUT
 #include "../Utils/Output.h"
-#include "../Utils/AddrInfo.h"
-#include "../Utils/Connection.h"
+#endif
 
-#define INET AF_INET
+#ifndef ADDRINFO
+#include "../Utils/AddrInfo.h"
+#endif
+
+#ifndef CONNECTION
+#include "../Utils/Connection.h"
+#endif
+
 #define MAX_QUEUE 5
 
 using namespace std;
@@ -18,10 +27,11 @@ using namespace std;
 /**
  * 
 */
-void handleConnection(int id)
+void handleConnection(int sock)
 {
-  Connection conn(id);
-  conn.handle();
+  char buffer[10000];
+  Connection conn(sock);
+  conn.echo("lol");
 }
 
 
@@ -31,7 +41,7 @@ private:
   /**
    * DTO holds server info and provides easy interface to extract data from it
   */
-  AddrInfo *si; // struct holding server info
+  AddrInfo* address; // struct holding server info
   /**
    * Socket file descriptor
   */
@@ -57,32 +67,19 @@ public:
 
 Server::Server(char *ip, char *port) // initializing the server
 {
-  struct addrinfo hints;
-  struct addrinfo *temp;
+  address = new AddrInfo(ip, port);
 
-  memset(&hints, 0, sizeof hints);
-
-  hints.ai_family = INET;
-  hints.ai_socktype = SOCK_STREAM;
-  if (ip == NULL)
-    hints.ai_flags = AI_PASSIVE;
-
-  if (getaddrinfo(ip, port, &hints, &temp))
-    Output::showError("getaddr");
-
-  si = new AddrInfo(temp);
-
-  Output::showSuccess("Initialized server successfully");
+  cout << "Initialized server successfully with ip: " << address->getIP() << " and port " << address->getPort() << endl;
 }
 
 void Server::start()
 {
   // Starting listener
-  sock = socket(si->getFamily(), si->getType(), si->getProtocol());
+  sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock == -1)
     Output::showError("socket");
 
-  if (bind(sock, si->getAddr(), si->getLength()) == -1)
+  if (bind(sock, address->format(), address->getLength()) == -1)
     Output::showError("bind");
 
   if (listen(sock, MAX_QUEUE) == -1)
@@ -91,10 +88,13 @@ void Server::start()
   // Accepting Connections
   struct sockaddr_storage their_addr; // connector address
   running = true;
-  cout << "Currently Listening on port " << si->getPort() << endl;
+
+  Output::showSuccess("Listening...");
+
   while (running)
   {
-    int conn_id = accept(sock, (struct sockaddr *)&their_addr, sizeof their_addr);
+    socklen_t size = sizeof(their_addr);
+    int conn_id = accept(sock, (struct sockaddr *)&their_addr, &size);
 
     // Connection rejected
     if (conn_id == -1)
@@ -108,7 +108,7 @@ void Server::start()
     int id = fork();
 
     if (!id) // Child process
-      handleConnection(id);
+      handleConnection(sock);
     
     else
       close(id); // Parent doesn't need the connection descriptor at all
